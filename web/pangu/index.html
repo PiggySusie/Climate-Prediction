@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>气象数据可视化</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body { font-family: Arial; text-align: center; margin: 20px; }
+    #plot { width: 95vw; height: 80vh; margin: auto; }
+  </style>
+</head>
+<body>
+  <h2>气象数据可视化</h2>
+  <label>选择数据文件：</label>
+  <select id="file-selector"></select>
+  <label>选择数据：</label>
+    <select id="variable-selector">
+    <option value="temperature_2m">2米气温</option>
+    <option value="mean_sea_level_pressure">海平面气压</option>
+    <option value="wind_speed_10m">10米风速</option>
+    </select>
+  <div id="plot"></div>
+  <div id="city-weather" style="margin-top: 10px; font-size: 16px;"></div>
+
+
+  <script>
+    const selector = document.getElementById('file-selector');
+    const plotDiv = document.getElementById('plot');
+
+    fetch('data/data_list.json')
+      .then(res => res.json())
+      .then(files => {
+        files.forEach(f => {
+          const opt = document.createElement('option');
+          opt.value = f;
+          opt.innerText = f;
+          selector.appendChild(opt);
+        });
+        loadData(files[0]);
+      });
+
+    selector.addEventListener('change', () => {
+      loadData(selector.value);
+    });
+    document.getElementById('variable-selector').addEventListener('change', () => {
+        loadData(selector.value);  // 注意这里传入的是当前文件名
+        });
+
+    function loadData(filename) {
+
+        
+    fetch(`data/${filename}`)
+        .then(res => res.json())
+        .then(data => {
+        // 修复经度为 [-180, 180]
+        const rawLon = data.lon.map(d => d > 180 ? d - 360 : d);
+        const lonIndices = rawLon.map((val, idx) => ({ val, idx }))
+                                .sort((a, b) => a.val - b.val);
+
+        const sortedLon = lonIndices.map(obj => obj.val);
+        const reorder = (row) => lonIndices.map(obj => row[obj.idx]);
+
+        const lon = sortedLon;
+        const lat = data.lat;
+        const selectedVar = document.getElementById('variable-selector').value;
+
+        let z = [];
+        let title = '';
+        let colorbarTitle = '';
+        let colorscale = 'Jet';
+        let hovertemplate = '';
+
+        if (selectedVar === 'temperature_2m') {
+            z = data.temperature_2m.map(reorder);
+            title = '2米温度分布';
+            colorbarTitle = '温度 (°C)';
+            hovertemplate = '温度: %{z:.2f} °C<br>经度: %{x:.2f}°<br>纬度: %{y:.2f}°<extra></extra>';
+        } else if (selectedVar === 'mean_sea_level_pressure') {
+            z = data.mean_sea_level_pressure.map(reorder);
+            title = '海平面气压分布';
+            colorbarTitle = '气压 (hPa)';
+            hovertemplate = '气压: %{z:.2f} hPa<br>经度: %{x:.2f}°<br>纬度: %{y:.2f}°<extra></extra>';
+        } else if (selectedVar === 'wind_speed_10m') {
+            const u = data.u_component_of_wind_10m.map(reorder);
+        const v = data.v_component_of_wind_10m.map(reorder);
+            z = u.map((row, i) =>
+            row.map((val, j) => Math.sqrt(val ** 2 + v[i][j] ** 2))
+            );
+            title = '10米风速分布';
+            colorbarTitle = '风速 (m/s)';
+            hovertemplate = '风速: %{z:.2f} m/s<br>经度: %{x:.2f}°<br>纬度: %{y:.2f}°<extra></extra>';
+        }
+
+        const heatmap = {
+            type: 'heatmap',
+            x: sortedLon,  
+            y: lat,
+            z: z,
+            colorscale: colorscale,
+            zsmooth: 'best',
+            colorbar: { title: colorbarTitle },
+            hovertemplate: hovertemplate
+            };
+
+        const markerBeijing = {
+            type: 'scatter',
+            mode: 'markers+text',
+            x: [116.4074],
+            y: [39.9042],
+            text: ['北京'],
+            textposition: 'top center',
+            marker: { color: 'blue', size: 10 },
+            showlegend: false,
+            hoverinfo: 'skip'
+        };
+
+        const markerShanghai = {
+            type: 'scatter',
+            mode: 'markers+text',
+            x: [121.47],
+            y: [31.23],
+            text: ['上海'],
+            textposition: 'top center',
+            marker: { color: 'red', size: 10 },
+            showlegend: false,
+            hoverinfo: 'skip'
+        };
+
+        const layout = {
+            title: `${title} - ${filename.replace('.json', '')}`,
+            xaxis: {
+            title: '经度 (°)',
+            range: [Math.min(...sortedLon), Math.max(...sortedLon)],
+            scaleanchor: 'y',     
+            scaleratio: 1,
+            showgrid: true
+            },
+            yaxis: {
+            title: '纬度 (°)',
+            range: [Math.min(...lat), Math.max(...lat)],
+            showgrid: true
+            },
+            margin: { t: 60 }
+        };
+
+        const cities = [
+        { name: "北京", lon: 116.4074, lat: 39.9042 },
+        { name: "上海", lon: 121.4737, lat: 31.2304 },
+        { name: "广州", lon: 113.2644, lat: 23.1291 },
+        { name: "深圳", lon: 114.0579, lat: 22.5431 }
+        ];
+
+        let cityText = "<b>城市天气：</b><br>";
+        cities.forEach(city => {
+        const i = lon.reduce((prev, curr, idx) => Math.abs(curr - city.lon) < Math.abs(lon[prev] - city.lon) ? idx : prev, 0);
+        const j = lat.reduce((prev, curr, idx) => Math.abs(curr - city.lat) < Math.abs(lat[prev] - city.lat) ? idx : prev, 0);
+
+        const temp = data.temperature_2m[j][i].toFixed(1);
+        const msl = data.mean_sea_level_pressure[j][i].toFixed(1);
+        const u = data.u_component_of_wind_10m[j][i];
+        const v = data.v_component_of_wind_10m[j][i];
+        const speed = Math.sqrt(u ** 2 + v ** 2).toFixed(1);
+
+        cityText += `${city.name}：🌡️${temp}°C | 🌬️${speed} m/s | ⬇️${msl} hPa<br>`;
+        });
+
+        // 显示城市天气
+        document.getElementById("city-weather").innerHTML = cityText;
+
+
+        fetch('data/world.json')
+        .then(res => res.json())
+        .then(geo => {
+            const borders = {
+            type: 'scatter',
+            mode: 'lines',
+            name: '国界',
+            line: { color: 'rgba(80,80,80,0.3)', width: 1 },
+            hoverinfo: 'skip',
+            x: [],
+            y: [],
+            showlegend: false
+            };
+
+            geo.features.forEach(f => {
+            const coords = f.geometry.coordinates;
+            const type = f.geometry.type;
+
+            if (type === "Polygon") {
+                coords.forEach(ring => {
+                borders.x.push(...ring.map(c => c[0]), null);
+                borders.y.push(...ring.map(c => c[1]), null);
+                });
+            } else if (type === "MultiPolygon") {
+                coords.forEach(polygon => {
+                polygon.forEach(ring => {
+                    borders.x.push(...ring.map(c => c[0]), null);
+                    borders.y.push(...ring.map(c => c[1]), null);
+                });
+                });
+            }
+            });
+
+            // 最终绘图
+            Plotly.newPlot('plot', [heatmap, markerBeijing, markerShanghai, borders], layout);
+        });
+
+        });
+}
+
+  </script>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>PM2.5 热力图动画（预测 & 误差）</title>
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5/dist/echarts.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; text-align: center; margin: 20px; }
+    #chart { width: 85vw; height: 70vh; margin: auto; }
+    #controls { margin-top: 20px; }
+    button { padding: 6px 12px; font-size: 14px; margin: 4px; }
+    #timeline { width: 85vw; margin: 10px auto; }
+    #time-display { display: inline-block; width: 120px; text-align: right; margin-right: 10px; }
+    .time-indicator { display: inline-block; width: 80px; text-align: center; }
+  </style>
+</head>
+<body>
+
+  <h2>🔁 PM2.5 多站点预测热力图（ConvLSTM）</h2>
+  <div id="chart"></div>
+  <div id="controls">
+    <button onclick="play()">▶ 播放</button>
+    <button onclick="pause()">⏸ 暂停</button>
+    <button onclick="toggleMode()">🔁 切换模式</button>
+    <div id="time-controls">
+      <div id="time-display">时间点:</div>
+      <input type="range" id="timeline" min="0" max="100" value="0">
+      <div class="time-indicator" id="time-index">0</div>
+      <div class="time-indicator" id="time-total">0</div>
+    </div>
+    <br>
+    <input type="text" id="time-input" placeholder="例如 2015-03-01 15:00">
+    <button onclick="predictTime()">📥 预测指定时间</button>
+    <div id="status">Time: -, Mode: predicted</div>
+  </div>
+
+  <script>
+    const chart = echarts.init(document.getElementById('chart'));
+    let timer = null;
+    let currentIndex = 0;
+    let frames = [];
+    let mode = "predicted";  // 或 "error"
+    let timeIndices = []; // 存储时间索引对应的实际时间
+
+    const stationGrid = [
+      ["怀柔", "顺义", "昌平", "定陵"],
+      ["万柳", "古城", "奥体中心", "东四"],
+      ["官园", "万寿西宫", "天坛", "农展馆"]
+    ];
+
+    fetch("data/pm25_prediction_vs_truth_mult.json")
+      .then(res => res.json())
+      .then(raw => {
+        const grouped = groupByTime(raw);
+        frames = grouped;
+        timeIndices = grouped.map((_, i) => i); // 简单示例，实际应映射到真实时间
+        updateTimeline();
+        drawFrame(currentIndex);
+      });
+
+    function groupByTime(data) {
+      const grouped = {};
+      data.forEach(d => {
+        if (!grouped[d.time_index]) grouped[d.time_index] = [];
+        grouped[d.time_index].push(d);
+      });
+      return Object.values(grouped);  // 按时间顺序数组
+    }
+
+    function drawFrame(index) {
+      if (!frames[index]) return;
+
+      currentIndex = index;
+      updateTimelineValue(index);
+
+      const data = frames[index];
+      const values = Array(3).fill(0).map(() => Array(4).fill(0));
+
+      data.forEach(d => {
+        const val = mode === "predicted" ? d.predicted_pm25 : d.error;
+        values[d.row][d.col] = val;
+      });
+
+      chart.setOption({
+        title: {
+          text: `时间点: ${index} (${mode === 'predicted' ? '预测值 μg/m³' : '预测误差'})`
+        },
+        tooltip: {
+          trigger: 'item',
+          formatter: function (params) {
+            const r = params.value[1];
+            const c = params.value[0];
+            const station = stationGrid[r][c];
+            return `${station}<br>${mode === 'predicted' ? '预测 PM2.5' : '误差'}: ${params.value[2].toFixed(1)} μg/m³`;
+          }
+        },
+        xAxis: {
+          type: 'category',
+          data: [0, 1, 2, 3],
+          name: '列'
+        },
+        yAxis: {
+          type: 'category',
+          data: [0, 1, 2],
+          name: '行',
+          inverse: true
+        },
+        visualMap: {
+          min: mode === "predicted" ? 0 : -50,
+          max: mode === "predicted" ? 200 : 50,
+          calculable: true,
+          orient: 'horizontal',
+          left: 'center',
+          bottom: '5%',
+          text: ['高', '低']
+        },
+        series: [{
+          type: 'heatmap',
+          name: 'PM2.5',
+          data: formatToSeries(values),
+          label: {
+            show: true,
+            formatter: function (params) {
+              const row = params.value[1];
+              const col = params.value[0];
+              const station = stationGrid[row][col];
+              const val = params.value[2].toFixed(1);
+              return `${station}\n\n${val}`;  // 增加空行提高可读性
+            },
+            fontSize: 14,
+            color: '#000'
+          },
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowColor: 'rgba(0,0,0,0.5)'
+            }
+          }
+        }]
+      });
+
+      document.getElementById("status").innerText =
+        `时间: ${index} / ${frames.length}   模式: ${mode}`;
+    }
+
+    function formatToSeries(arr2d) {
+      const res = [];
+      for (let i = 0; i < arr2d.length; i++) {
+        for (let j = 0; j < arr2d[0].length; j++) {
+          res.push([j, i, arr2d[i][j]]);
+        }
+      }
+      return res;
+    }
+
+    function play() {
+      if (timer) return;
+      timer = setInterval(() => {
+        currentIndex = (currentIndex + 1) % frames.length;
+        drawFrame(currentIndex);
+      }, 1000);
+    }
+
+    function pause() {
+      clearInterval(timer);
+      timer = null;
+    }
+
+    function toggleMode() {
+      mode = (mode === "predicted") ? "error" : "predicted";
+      drawFrame(currentIndex);
+    }
+
+    function updateTimeline() {
+      const timeline = document.getElementById('timeline');
+      const timeTotal = document.getElementById('time-total');
+      if (frames.length > 0) {
+        timeline.max = frames.length - 1;
+        timeline.value = currentIndex;
+        timeTotal.textContent = frames.length - 1;
+      }
+    }
+
+    function updateTimelineValue(index) {
+      const timeline = document.getElementById('timeline');
+      timeline.value = index;
+      document.getElementById('time-index').textContent = index;
+    }
+
+    // 进度条事件监听
+    document.getElementById('timeline').addEventListener('input', function() {
+      const index = parseInt(this.value);
+      drawFrame(index);
+      pause(); // 拖动进度条时暂停自动播放
+    });
+
+    let validTimes = [];
+
+    window.onload = function () {
+      fetch("/valid_times")
+        .then(res => res.json())
+        .then(times => {
+          validTimes = times;
+        });
+    };
+
+    function predictTime() {
+      const input = document.getElementById("time-input").value.trim();
+      if (!input) {
+        alert("请输入一个时间，例如：2015-06-01 15:00");
+        return;
+      }
+
+      if (!validTimes.includes(input)) {
+        alert("该时间不可预测，请输入一个可用时间(20130301-20170228)");
+        return;
+      }
+
+      fetch(`/predict?time=${encodeURIComponent(input)}`)
+        .then(res => {
+          if (!res.ok) throw new Error(`请求失败: ${res.status}`);
+          return res.json();
+        })
+        .then(result => {
+          const values = result.grid;
+          if (!values || values.flat().every(v => isNaN(v))) {
+            alert("该时间点无有效预测数据！");
+            return;
+          }
+
+          chart.setOption({
+            title: { text: `预测 PM2.5 — ${input}` },
+            tooltip: {
+              trigger: 'item',
+              formatter: function (params) {
+                const r = params.value[1];
+                const c = params.value[0];
+                const station = stationGrid[r][c];
+                return `${station}<br>PM2.5: ${params.value[2].toFixed(1)} μg/m³`;
+              }
+            },
+            visualMap: {
+              min: 0,
+              max: 200,
+              calculable: true,
+              orient: 'horizontal',
+              left: 'center',
+              bottom: '5%',
+              text: ['高', '低']
+            },
+            series: [{
+              type: 'heatmap',
+              data: formatToSeries(values),
+              label: {
+                show: true,
+                formatter: function (params) {
+                  const row = params.value[1];
+                  const col = params.value[0];
+                  const station = stationGrid[row][col];
+                  const val = params.value[2].toFixed(1);
+                  return `${station}\n\n${val}`;
+                }
+              }
+            }]
+          });
+
+          document.getElementById("status").innerText =
+            `时间: ${input}   模式: predicted`;
+
+          pause(); // 停止播放
+        })
+        .catch(error => {
+          alert("请求失败：" + error.message);
+          console.error(error);
+        });
+    }
+  </script>
+</body>
+</html>
