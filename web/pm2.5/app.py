@@ -11,7 +11,7 @@ app = Flask(__name__)
 # === 路径设置 ===
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))  # 当前文件夹
 DATA_DIR = os.path.join(BASE_DIR, "data")
-csv_path = os.path.join(DATA_DIR, "merged_stations_pm_cleaned.csv")
+csv_path = os.path.join(DATA_DIR, "small_sample_201603.csv")
 
 
 # ==== 主页导航 ====

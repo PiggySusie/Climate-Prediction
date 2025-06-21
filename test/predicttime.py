@@ -41,7 +41,7 @@ def plot_prediction_heatmaps(pred, true, station_grid, target_time, save_path=No
 def predict_by_time(target_time_str):
     # === 配置路径 ===
     scaler_path = "data/scaler_with_features.save"
-    model_path = "conv_lstm_multistation_v2.h5"
+    model_path = "data/conv_lstm_multistation_v2.h5"
     input_csv = "data/small_sample_cleaned_201603.csv"     # 标准化过的
     true_csv = "data/small_sample_201603.csv"              # 原始真实值 
 

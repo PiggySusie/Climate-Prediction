@@ -12,9 +12,8 @@ BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 DATA_DIR = os.path.join(BASE_DIR, "data")
 MODEL_DIR = os.path.dirname(__file__)
 
-
-input_csv = os.path.join(DATA_DIR, "merged_stations_pm_cleaned.csv")
-true_csv = os.path.join(DATA_DIR, "merged_stations_pm.csv")
+input_csv = os.path.join(DATA_DIR, "small_sample_cleaned_201603.csv")
+true_csv = os.path.join(DATA_DIR, "small_sample_201603.csv")
 
 scaler_path = os.path.join(MODEL_DIR, "scaler_with_features.save")
 model_path = os.path.join(MODEL_DIR, "conv_lstm_multistation_v2.h5")
