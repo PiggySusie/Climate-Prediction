@@ -44,4 +44,4 @@
 
 #### 4. 可视化成果展示
 
-包含已经精简过的数据的可视化，运行`web/pm2.5/app.py`后打开http://localhost:5000，即可进行可视化验证，可能需要下载新的依赖，文件夹中有对应的`requirements.txt`。
+包含已经精简过的数据的可视化，运行`web/pm2.5/app.py`后打开`http://localhost:5000`，即可进行可视化验证，可能需要下载新的依赖，文件夹中有对应的`requirements.txt`。
