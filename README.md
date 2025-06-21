@@ -20,7 +20,7 @@
 
 完整的Notebook、所需模型和精简版本已上传至 [Meta-Learner](https://github.com/PiggySusie/Climate-Prediction/tree/master/Meta-Learner) 
 
-[模型](https://github.com/PiggySusie/Climate-Prediction/tree/master/Meta-Learner/model)/[精简数据]()需要下载到本地后上传colab进行测试，在Notebook的最后一部分，提供了相应的测试方式，直接按照指示运行即可，测试所用函数都是前文出现过的，为了方便测试统一复制到了最后一部分。
+[模型](https://github.com/PiggySusie/Climate-Prediction/tree/master/Meta-Learner/model)/[精简数据](https://github.com/PiggySusie/Climate-Prediction/tree/master/Meta-Learner/data)需要下载到本地后上传colab进行测试，在Notebook的最后一部分，提供了相应的测试方式，直接按照指示运行即可，测试所用函数都是前文出现过的，为了方便测试统一复制到了最后一部分。
 
 
 
@@ -45,3 +45,4 @@
 #### 4. 可视化成果展示
 
 包含已经精简过的数据的可视化，运行`web/pm2.5/app.py`后打开`http://localhost:5000`，即可进行可视化验证，可能需要下载新的依赖，文件夹中有对应的`requirements.txt`。
+
