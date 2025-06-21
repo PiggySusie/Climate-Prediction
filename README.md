@@ -1,14 +1,15 @@
 # 基于深度学习模型的气象预测与模型优化
 
+仓库链接：https://github.com/PiggySusie/Climate-Prediction
+
 ### 项目概述
 
 本项目的核心目标是优化天气预测模型，使用深度学习方法进行时序预测，尤其专注于不同模型在捕捉天气数据时序特征和周期性规律的表现。为了实现这一目标，我们使用了多种深度学习架构，如LSTM、ResNet和Transformer，并针对时序数据的预测任务进行了创新性优化，尤其是动态模型选择和模型融合策略。
 
 ### 文档材料
+ [实验报告](基于深度学习模型的气象预测与模型优化_实验报告.md) /[仓库内](https://github.com/PiggySusie/Climate-Prediction/blob/master/%E5%9F%BA%E4%BA%8E%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E6%A8%A1%E5%9E%8B%E7%9A%84%E6%B0%94%E8%B1%A1%E9%A2%84%E6%B5%8B%E4%B8%8E%E6%A8%A1%E5%9E%8B%E4%BC%98%E5%8C%96_%E5%AE%9E%E9%AA%8C%E6%8A%A5%E5%91%8A.md)
 
- [实验报告](基于深度学习模型的气象预测与模型优化_实验报告.md) 
-
- [技术文档](基于深度学习模型的气象预测与模型优化_技术文档.md) 
+ [技术文档](基于深度学习模型的气象预测与模型优化_技术文档.md) /[仓库内](https://github.com/PiggySusie/Climate-Prediction/blob/master/%E5%9F%BA%E4%BA%8E%E6%B7%B1%E5%BA%A6%E5%AD%A6%E4%B9%A0%E6%A8%A1%E5%9E%8B%E7%9A%84%E6%B0%94%E8%B1%A1%E9%A2%84%E6%B5%8B%E4%B8%8E%E6%A8%A1%E5%9E%8B%E4%BC%98%E5%8C%96_%E6%8A%80%E6%9C%AF%E6%96%87%E6%A1%A3.md)
 
 
 
